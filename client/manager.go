@@ -53,7 +53,7 @@ func (m *Manager) Client(id uint32) *Client {
 	return client
 }
 
-// Remove a named tab from the internal list
+// Remove a named grieth from the internal list
 func (m *Manager) Remove(uuid uint32) error {
 	for n, c := range m.clients {
 		if c.UUID == uuid {

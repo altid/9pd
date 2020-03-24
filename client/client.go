@@ -30,6 +30,8 @@ func (c *Client) SetBuffer(buffer string) {
 		}
 
 		c.Active = true
+	case c.current == buffer:
+		return
 	default:
 		c.Active = true
 		c.history = append(c.history, c.current)

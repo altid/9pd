@@ -3,6 +3,7 @@ package ninep
 import (
 	"os"
 
+	"github.com/altid/server/client"
 	"github.com/altid/server/command"
 	"github.com/altid/server/tail"
 )
@@ -12,6 +13,7 @@ func (s *service) listenCommands(fp *os.File) {
 
 	for cmd := range s.command {
 		c := s.client.Client(cmd.UUID)
+		old := c.Current()
 
 		switch cmd.CmdType {
 		case command.OtherCmd:
@@ -19,10 +21,10 @@ func (s *service) listenCommands(fp *os.File) {
 		case command.OpenCmd:
 			c.SetBuffer(cmd.Args[0])
 			cmd.WriteOut(fp)
-			s.update(cmd.UUID)
+			s.update(c, old)
 		case command.BufferCmd:
 			c.SetBuffer(cmd.Args[0])
-			s.update(cmd.UUID)
+			s.update(c, old)
 		case command.CloseCmd:
 			// Pop back to the last buffer
 			history := c.History()
@@ -31,12 +33,12 @@ func (s *service) listenCommands(fp *os.File) {
 			} else {
 				c.SetBuffer(history[len(history)-1])
 			}
-			s.update(cmd.UUID)
+			s.update(c, old)
 			cmd.WriteOut(fp)
 		case command.LinkCmd:
 			c.SetBuffer(cmd.Args[1])
 			cmd.WriteOut(fp)
-			s.update(cmd.UUID)
+			s.update(c, old)
 		case command.ReloadCmd:
 			// TODO (halfwit): We want to recreate everything but save our client connections
 			// possibly we'll be loading more services, etc
@@ -80,7 +82,12 @@ func (s *service) sendFeeds(e *tail.Event) {
 	}
 }
 
-func (s *service) update(uuid uint32) {
-	s.debug("feed update id=\"%d\"", uuid)
-	s.feed.Done(uuid)
+func (s *service) update(c *client.Client, old string) {
+	s.tabs.Tab(old).Active = false
+
+	tab := s.tabs.Tab(c.Current())
+	tab.Active = true
+	tab.Unread = 0
+
+	s.feed.Done(c.UUID)
 }
